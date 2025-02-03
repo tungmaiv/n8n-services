@@ -3,6 +3,7 @@ n8n-services/
 ├── .env                          # Centralized environment variables
 ├── Dockerfile                    # Single container configuration
 ├── docker-compose.yml           # For local development
+├── main.py                       # Application entry point
 ├── requirements.txt             # Project dependencies
 ├── README.md                    # Project documentation
 │

@@ -6,6 +6,7 @@ n8n-services/
 ├── .env                          # Centralized environment variables
 ├── Dockerfile                    # Single container configuration
 ├── docker-compose.yml           # For local development
+├── main.py                       # Application entry point
 ├── requirements.txt             # Project dependencies
 ├── README.md                    # Project documentation
 │
@@ -57,30 +58,57 @@ n8n-services/
 Key aspects of this structure:
 
 1. **Root Level**
+the key files
    - `.env`: Single configuration file for all environment variables
    - `Dockerfile`: Single container configuration
    - `docker-compose.yml`: For local development and testing
+   - `main.py`: Application entry point  
+the key folder components of this structure:
+   - `api/`: Contains four API services, each with
+     - `db_clean`: db_clean API
+       - `main.py`: API endpoints
+       - `utils.py`:  API utilities
+       - `__init__.py`: Module initialization
+     - `text_splitter`: text_splitter API
+       - `main.py`: API endpoints
+       - `utils.py`:  API utilities
+       - `__init__.py`: Module initialization
+     - `text_segmentor`: text_segmentor API
+       - `main.py`: API endpoints
+       - `utils.py`:  API utilities
+       - `__init__.py`: Module initialization
+     - `docx2text`: docx2text API
+       - `main.py`: API endpoints
+       - `utils.py`:  API utilities
+       - `__init__.py`: Module initialization
+   - `shared/`: Common components:
+     - `logging/`: Centralized logging configuration
+     - `monitoring/`: Prometheus metrics and monitoring setup
+   - `config/`: Configuration files:
+     - `prometheus/`: Prometheus configuration for metrics
+   - `logs/`: Directory for log files, mapped to Docker volume
+   - `scripts/`: Directory for shell scripts: start.sh, healthcheck.sh
 
-2. **API Structure**
+1. **API Structure**
    - Each API service is isolated in its own directory
    - Consistent structure across all APIs
    - Shared utilities per service
 
-3. **Shared Components**
+2. **Shared Components**
    - Centralized logging configuration
    - Prometheus metrics setup
    - Easy to add more shared components
 
-4. **Configuration**
+3. **Configuration**
    - Separated logging and monitoring configs
    - Easy to modify without changing code
 
-5. **Logs**
+4. **Logs**
    - Dedicated directory for logs
    - Mounted as a volume in Docker
    - Preserved between container restarts
 
-6. **Scripts**
+5. **Scripts**
    - Container management scripts
    - Health monitoring
 
