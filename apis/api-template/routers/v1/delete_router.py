@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 import os
 from supabase import create_client, Client
-from shared.logging.logger import APILogger
+from shared.logging.logger_bak import APILogger
 from shared.monitoring.metrics import APIMetrics
 import time
 

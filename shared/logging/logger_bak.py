@@ -16,42 +16,26 @@ class ElasticsearchHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         try:
-            # Base log entry
+            # Create log entry
             log_entry = {
                 'timestamp': datetime.utcnow().isoformat(),
                 'level': record.levelname,
+                'service': record.service_name,
                 'message': record.getMessage(),
-                'logger': record.name,
-                'environment': os.getenv('ENVIRONMENT', 'development')
+                'logger': record.name
             }
-            
-            # Add service name if available in record.__dict__
-            if 'service_name' in record.__dict__:
-                log_entry['service'] = record.__dict__['service_name']
-            
-            # Add any extra attributes from record.__dict__
-            extras = {
-                k: v for k, v in record.__dict__.items()
-                if k not in {'args', 'asctime', 'created', 'exc_info', 'exc_text', 
-                           'filename', 'funcName', 'levelname', 'levelno', 'lineno', 
-                           'module', 'msecs', 'message', 'msg', 'name', 'pathname', 
-                           'process', 'processName', 'relativeCreated', 'stack_info', 
-                           'thread', 'threadName', 'service_name'}
-            }
-            log_entry.update(extras)
 
-            # Add exception info if present
-            if record.exc_info:
-                log_entry['exception'] = {
-                    'type': record.exc_info[0].__name__,
-                    'message': str(record.exc_info[1]),
-                    'traceback': self.formatter.formatException(record.exc_info)
-                }
+            # Add extra fields if they exist
+            if hasattr(record, 'extra'):
+                log_entry.update(record.extra)
 
             # Create daily index
             index_name = f"{self.index_prefix}-{datetime.utcnow().strftime('%Y.%m.%d')}"
+            
+            # Send to Elasticsearch
             self.es_client.index(index=index_name, document=log_entry)
         except Exception as e:
+            # Fallback to standard error logging
             print(f"Failed to send log to Elasticsearch: {e}")
 
 class APILogger:
@@ -60,30 +44,27 @@ class APILogger:
         self.service_name = service_name
         self.logger = logging.getLogger(service_name)
         self.logger.setLevel(log_level or os.getenv('LOG_LEVEL', 'INFO'))
-        
-        # Initialize handlers
-        self._init_handlers()
 
-    def _init_handlers(self):
+        # Clear existing handlers
         self.logger.handlers = []
-        
-        # Console handler
+
+        # Add console handler with JSON formatting
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(JSONFormatter())
         self.logger.addHandler(console_handler)
-        
-        # File handler
+
+        # Add file handler if LOG_FILE_PATH is set
         log_file = os.getenv('LOG_FILE_PATH')
         if log_file:
             file_handler = RotatingFileHandler(
-                f"{log_file}/{self.service_name}.log",
+                f"{log_file}/{service_name}.log",
                 maxBytes=10485760,  # 10MB
                 backupCount=5
             )
             file_handler.setFormatter(JSONFormatter())
             self.logger.addHandler(file_handler)
-        
-        # Elasticsearch handler
+
+        # Add Elasticsearch handler if configured
         es_host = os.getenv('ELASTICSEARCH_HOST')
         if es_host:
             es_handler = ElasticsearchHandler(es_host)
@@ -92,18 +73,6 @@ class APILogger:
     def get_logger(self) -> logging.Logger:
         """Get the configured logger instance"""
         return self.logger
-
-    def log_error(self, error: Exception, context: dict = None):
-        """Log error with context"""
-        extra = {'service_name': self.service_name}
-        if context:
-            extra.update(context)
-
-        self.logger.error(
-            str(error),
-            extra=extra,
-            exc_info=True
-        )
 
     def log_request(self, method: str, path: str, status_code: int, duration: float):
         """Log API request details"""
@@ -118,8 +87,36 @@ class APILogger:
             }
         )
 
-# Example usage:
+    def log_error(self, error: Exception, context: dict = None):
+        """Log error with context"""
+        extra = {
+            'error_type': type(error).__name__,
+            'service_name': self.service_name
+        }
+        if context:
+            extra.update(context)
+
+        self.logger.error(
+            str(error),
+            extra=extra,
+            exc_info=True
+        )
+
+# Example usage in an API:
 '''
+from shared.logging.logger import APILogger
+
+# Initialize logger
 logger = APILogger("api1").get_logger()
-logger.info("Test message", extra={'custom_field': 'value'})
+
+# Use in FastAPI endpoint
+@app.get("/items/{item_id}")
+async def read_item(item_id: int):
+    logger.info(f"Fetching item {item_id}", extra={'item_id': item_id})
+    try:
+        # Your logic here
+        pass
+    except Exception as e:
+        logger.error("Failed to fetch item", extra={'item_id': item_id})
+        raise
 '''
