@@ -3,25 +3,30 @@ project_root/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
+├── start.sh                    # Added: Script to start all APIs
 ├── .env.example
 ├── shared/
 │   ├── __init__.py
 │   ├── logging/
 │   │   ├── __init__.py
-│   │   ├── logger.py
-│   │   └── formatters.py
+│   │   ├── logger.py          # Main logging functionality
+│   │   └── formatters.py      # JSON formatters
 │   └── monitoring/
 │       ├── __init__.py
-│       ├── metrics.py
+│       ├── metrics.py         # Prometheus metrics
 │       └── prometheus_config.py
 ├── apis/
 │   ├── __init__.py
+│   ├── metrics/              # Added: Simple metrics endpoint
+│   │   ├── __init__.py
+│   │   └── main.py          # Prometheus metrics exposition
 │   ├── api1/
 │   │   ├── __init__.py
 │   │   ├── main.py
 │   │   ├── routes/
 │   │   │   ├── __init__.py
 │   │   │   └── v1/
+│   │   │       └── __init__.py
 │   │   ├── models/
 │   │   │   └── __init__.py
 │   │   └── services/
@@ -32,6 +37,7 @@ project_root/
 │       ├── routes/
 │       │   ├── __init__.py
 │       │   └── v1/
+│       │       └── __init__.py
 │       ├── models/
 │       │   └── __init__.py
 │       └── services/
