@@ -1,9 +1,10 @@
 # apis/data_management_api/main.py
 from fastapi import FastAPI
-from .routes.v1.delete_routes import router as delete_router
+from .routers.v1.delete_routes import router as delete_router
 from shared.logging.logger import APILogger
 from shared.monitoring.metrics import APIMetrics
 import os
+
 
 app = FastAPI(
     title="Data Management API",

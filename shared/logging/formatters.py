@@ -7,7 +7,7 @@ import os
 class JSONFormatter(logging.Formatter):
     """JSON formatter for structured logging"""
     def format(self, record: logging.LogRecord) -> str:
-        """Format log record as JSON"""
+        # Base log object with standard fields
         log_object = {
             'timestamp': datetime.utcnow().isoformat(),
             'level': record.levelname,
@@ -16,33 +16,24 @@ class JSONFormatter(logging.Formatter):
             'environment': os.getenv('ENVIRONMENT', 'development')
         }
 
-        # Add service name if available
-        if hasattr(record, 'service_name'):
-            log_object['service'] = record.service_name
-
-        # Add extra fields if they exist
-        if hasattr(record, 'extra'):
-            log_object.update(record.extra)
+        # Add extra fields from record.__dict__
+        extras = {
+            k: v for k, v in record.__dict__.items()
+            if k not in {
+                'args', 'asctime', 'created', 'exc_info', 'exc_text', 
+                'filename', 'funcName', 'levelname', 'levelno', 'lineno', 
+                'module', 'msecs', 'message', 'msg', 'name', 'pathname', 
+                'process', 'processName', 'relativeCreated', 'stack_info', 
+                'thread', 'threadName'
+            }
+        }
+        log_object.update(extras)
 
         # Add exception info if present
         if record.exc_info:
-            log_object['exception'] = {
-                'type': record.exc_info[0].__name__,
-                'message': str(record.exc_info[1]),
-                'traceback': self.formatException(record.exc_info)
-            }
+            try:
+                log_object['exception'] = self.formatException(record.exc_info)
+            except Exception:
+                log_object['exception'] = 'Error formatting exception info'
 
         return json.dumps(log_object)
-
-# Example usage:
-'''
-from shared.logging.formatters import JSONFormatter
-
-# Create handler
-handler = logging.StreamHandler()
-handler.setFormatter(JSONFormatter())
-
-# Add to logger
-logger = logging.getLogger('my_api')
-logger.addHandler(handler)
-'''
