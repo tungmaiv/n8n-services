@@ -1,0 +1,43 @@
+project_root/
+├── README.md
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── .env.example
+├── shared/
+│   ├── __init__.py
+│   ├── logging/
+│   │   ├── __init__.py
+│   │   ├── logger.py
+│   │   └── formatters.py
+│   └── monitoring/
+│       ├── __init__.py
+│       ├── metrics.py
+│       └── prometheus_config.py
+├── apis/
+│   ├── __init__.py
+│   ├── api1/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── routes/
+│   │   │   ├── __init__.py
+│   │   │   └── v1/
+│   │   ├── models/
+│   │   │   └── __init__.py
+│   │   └── services/
+│   │       └── __init__.py
+│   └── api2/
+│       ├── __init__.py
+│       ├── main.py
+│       ├── routes/
+│       │   ├── __init__.py
+│       │   └── v1/
+│       ├── models/
+│       │   └── __init__.py
+│       └── services/
+│           └── __init__.py
+└── tests/
+    ├── __init__.py
+    ├── conftest.py
+    └── unit/
+        └── __init__.py
