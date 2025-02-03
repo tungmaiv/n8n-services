@@ -15,12 +15,12 @@ n8n-services/
 │   │   ├── main.py             # API implementation
 │   │   └── utils.py            # Service-specific utilities
 │   │
-│   ├── text_chunking/
+│   ├── text_splitter/
 │   │   ├── __init__.py
 │   │   ├── main.py
 │   │   └── utils.py
 │   │
-│   ├── text_segmentation/
+│   ├── text_segmentor/
 │   │   ├── __init__.py
 │   │   ├── main.py
 │   │   └── utils.py
