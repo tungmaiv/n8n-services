@@ -7,17 +7,17 @@ n8n-services/
 ├── README.md                    # Project documentation
 │
 ├── api/                         # API services
-│   ├── db-clean/
+│   ├── db_clean/
 │   │   ├── __init__.py
 │   │   ├── main.py             # API implementation
 │   │   └── utils.py            # Service-specific utilities
 │   │
-│   ├── text-chunking/
+│   ├── text_chunking/
 │   │   ├── __init__.py
 │   │   ├── main.py
 │   │   └── utils.py
 │   │
-│   ├── text-segmentation/
+│   ├── text_segmentation/
 │   │   ├── __init__.py
 │   │   ├── main.py
 │   │   └── utils.py
