@@ -3,7 +3,7 @@
 ## Table of Contents
 - [Project Structure](#project-structure)
 - [Initial Setup](#initial-setup)
-- [Core Components Implementation](#core-components-implementation)
+- [Core Components](#core-components)
 - [API Generation](#api-generation)
 - [Docker Configuration](#docker-configuration)
 - [Implementation Best Practices](#implementation-best-practices)
@@ -16,6 +16,7 @@ project_root/
 ├── docker-compose.yml
 ├── requirements.txt
 ├── start.sh
+├── .env
 ├── .env.example
 ├── shared/
 │   ├── __init__.py
@@ -53,35 +54,42 @@ project_root/
 
 ## Initial Setup
 
-### Environment Configuration (.env.example)
+### 1. Create Environment Files
+
+**.env and .env.example:**
 ```ini
 # API Settings
 API1_PORT=8000
 API2_PORT=8001
 METRICS_PORT=8080
 
-# Logging
+# Logging Configuration
 LOG_LEVEL=INFO
 LOG_FILE_PATH=/app/logs
-ELASTICSEARCH_HOST=http://elasticsearch:9200
 
-# Environment
+# Environment Settings
 ENVIRONMENT=development
 SERVICE_NAME=api1
+
+# Application Settings
+DEBUG=False
+ALLOWED_HOSTS=*
+
+# Metrics Configuration
+METRICS_PATH=/metrics
 ```
 
-### Dependencies (requirements.txt)
+### 2. Dependencies (requirements.txt)
 ```txt
 fastapi==0.104.1
 uvicorn==0.24.0
 gunicorn==21.2.0
 prometheus-client==0.19.0
-elasticsearch==8.11.0
 python-dotenv==1.0.0
 pydantic==2.5.2
 ```
 
-## Core Components Implementation
+## Core Components
 
 ### 1. Logging Implementation (shared/logging/logger.py)
 ```python
@@ -90,58 +98,65 @@ import os
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Optional
-from elasticsearch import Elasticsearch
 from .formatters import JSONFormatter
 
-class ElasticsearchHandler(logging.Handler):
-    def __init__(self, host: str, index_prefix: str = "api-logs"):
-        super().__init__()
-        self.es_client = Elasticsearch(host)
-        self.index_prefix = index_prefix
-
-    def emit(self, record: logging.LogRecord):
-        try:
-            log_entry = {
-                'timestamp': datetime.utcnow().isoformat(),
-                'level': record.levelname,
-                'message': record.getMessage(),
-                'logger': record.name,
-                'environment': os.getenv('ENVIRONMENT', 'development')
-            }
-            
-            if 'service_name' in record.__dict__:
-                log_entry['service'] = record.__dict__['service_name']
-            
-            extras = {
-                k: v for k, v in record.__dict__.items()
-                if k not in {'args', 'asctime', 'created', 'exc_info', 'exc_text', 
-                           'filename', 'funcName', 'levelname', 'levelno', 'lineno', 
-                           'module', 'msecs', 'message', 'msg', 'name', 'pathname', 
-                           'process', 'processName', 'relativeCreated', 'stack_info', 
-                           'thread', 'threadName', 'service_name'}
-            }
-            log_entry.update(extras)
-
-            if record.exc_info:
-                log_entry['exception'] = {
-                    'type': record.exc_info[0].__name__,
-                    'message': str(record.exc_info[1]),
-                    'traceback': self.formatter.formatException(record.exc_info)
-                }
-
-            index_name = f"{self.index_prefix}-{datetime.utcnow().strftime('%Y.%m.%d')}"
-            self.es_client.index(index=index_name, document=log_entry)
-        except Exception as e:
-            print(f"Failed to send log to Elasticsearch: {e}")
-
 class APILogger:
+    """Main logger class for API applications"""
     def __init__(self, service_name: str, log_level: Optional[str] = None):
         self.service_name = service_name
         self.logger = logging.getLogger(service_name)
         self.logger.setLevel(log_level or os.getenv('LOG_LEVEL', 'INFO'))
         self._init_handlers()
 
-    # ... [rest of the implementation remains the same]
+    def _init_handlers(self):
+        self.logger.handlers = []
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(JSONFormatter())
+        self.logger.addHandler(console_handler)
+        
+        # File handler with rotation
+        log_path = os.getenv('LOG_FILE_PATH')
+        if log_path:
+            os.makedirs(log_path, exist_ok=True)
+            file_handler = RotatingFileHandler(
+                filename=f"{log_path}/{self.service_name}.log",
+                maxBytes=10485760,  # 10MB
+                backupCount=5,
+                encoding='utf-8'
+            )
+            file_handler.setFormatter(JSONFormatter())
+            self.logger.addHandler(file_handler)
+
+    def get_logger(self) -> logging.Logger:
+        """Get the configured logger instance"""
+        return self.logger
+
+    def log_error(self, error: Exception, context: dict = None):
+        """Log error with context"""
+        extra = {'service_name': self.service_name}
+        if context:
+            extra.update(context)
+
+        self.logger.error(
+            str(error),
+            extra=extra,
+            exc_info=True
+        )
+
+    def log_request(self, method: str, path: str, status_code: int, duration: float):
+        """Log API request details"""
+        self.logger.info(
+            f"API Request: {method} {path}",
+            extra={
+                'method': method,
+                'path': path,
+                'status_code': status_code,
+                'duration_seconds': duration,
+                'service_name': self.service_name
+            }
+        )
 ```
 
 ### 2. JSON Formatter (shared/logging/formatters.py)
@@ -152,7 +167,9 @@ from datetime import datetime
 import os
 
 class JSONFormatter(logging.Formatter):
+    """JSON formatter for structured logging"""
     def format(self, record: logging.LogRecord) -> str:
+        # Base log object with standard fields
         log_object = {
             'timestamp': datetime.utcnow().isoformat(),
             'level': record.levelname,
@@ -161,61 +178,101 @@ class JSONFormatter(logging.Formatter):
             'environment': os.getenv('ENVIRONMENT', 'development')
         }
 
-        if hasattr(record, 'service_name'):
-            log_object['service'] = record.service_name
-
-        if hasattr(record, 'extra'):
-            log_object.update(record.extra)
-
-        if record.exc_info:
-            log_object['exception'] = {
-                'type': record.exc_info[0].__name__,
-                'message': str(record.exc_info[1]),
-                'traceback': self.formatException(record.exc_info)
+        # Add extra fields from record.__dict__
+        extras = {
+            k: v for k, v in record.__dict__.items()
+            if k not in {
+                'args', 'asctime', 'created', 'exc_info', 'exc_text', 
+                'filename', 'funcName', 'levelname', 'levelno', 'lineno', 
+                'module', 'msecs', 'message', 'msg', 'name', 'pathname', 
+                'process', 'processName', 'relativeCreated', 'stack_info', 
+                'thread', 'threadName'
             }
+        }
+        log_object.update(extras)
+
+        # Add exception info if present
+        if record.exc_info:
+            try:
+                log_object['exception'] = self.formatException(record.exc_info)
+            except Exception:
+                log_object['exception'] = 'Error formatting exception info'
 
         return json.dumps(log_object)
 ```
 
 ### 3. Metrics Implementation (shared/monitoring/metrics.py)
 ```python
-from prometheus_client import Counter, Histogram, Gauge, Info
-import time
+from prometheus_client import Counter, Histogram, Gauge
 from functools import wraps
+import time
 
 class APIMetrics:
     def __init__(self, service_name: str):
         self.service_name = service_name
+        
         self.request_counter = Counter(
             'api_requests_total',
             'Total number of API requests',
             ['service', 'method', 'endpoint', 'status']
         )
+        
         self.request_latency = Histogram(
             'api_request_duration_seconds',
             'Request duration in seconds',
             ['service', 'method', 'endpoint'],
             buckets=(0.1, 0.5, 1.0, 2.0, 5.0)
         )
+        
         self.error_counter = Counter(
             'api_errors_total',
             'Total number of API errors',
             ['service', 'error_type']
         )
-        self.active_requests = Gauge(
-            'api_active_requests',
-            'Number of active requests',
-            ['service']
-        )
 
-    # ... [rest of the implementation remains the same]
+def monitor_requests(metrics: APIMetrics):
+    """Decorator for monitoring FastAPI endpoints"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            request = next((arg for arg in args if hasattr(arg, 'method')), None)
+            start_time = time.time()
+
+            try:
+                response = await func(*args, **kwargs)
+                duration = time.time() - start_time
+                
+                if request:
+                    metrics.request_counter.labels(
+                        service=metrics.service_name,
+                        method=request.method,
+                        endpoint=request.url.path,
+                        status=response.status_code
+                    ).inc()
+                    
+                    metrics.request_latency.labels(
+                        service=metrics.service_name,
+                        method=request.method,
+                        endpoint=request.url.path
+                    ).observe(duration)
+                
+                return response
+            except Exception as e:
+                metrics.error_counter.labels(
+                    service=metrics.service_name,
+                    error_type=type(e).__name__
+                ).inc()
+                raise
+
+        return wrapper
+    return decorator
 ```
 
 ## API Generation
 
 ### Template for New API
 
-1. Create directory structure:
+1. Create API Structure:
 ```bash
 mkdir -p apis/new_api/{routes/v1,models,services}
 touch apis/new_api/__init__.py
@@ -247,15 +304,6 @@ metrics = APIMetrics(os.getenv('SERVICE_NAME', 'new_api'))
 async def log_requests(request: Request, call_next):
     start_time = datetime.utcnow()
     
-    logger.info(
-        "Incoming request",
-        extra={
-            'method': request.method,
-            'path': request.url.path,
-            'client_ip': request.client.host
-        }
-    )
-    
     try:
         response = await call_next(request)
         duration = (datetime.utcnow() - start_time).total_seconds()
@@ -285,32 +333,6 @@ async def log_requests(request: Request, call_next):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-```
-
-3. Example Route Implementation (apis/new_api/routes/v1/endpoints.py):
-```python
-from fastapi import APIRouter, HTTPException
-from shared.monitoring.metrics import monitor_requests
-from typing import Dict, Any
-
-router = APIRouter(prefix="/v1")
-
-@router.get("/example")
-@monitor_requests(metrics)
-async def example_endpoint() -> Dict[str, Any]:
-    try:
-        logger.info("Processing example request")
-        return {"message": "success"}
-    except Exception as e:
-        logger.error(
-            "Operation failed",
-            extra={
-                'operation': 'example_endpoint',
-                'error': str(e)
-            },
-            exc_info=True
-        )
-        raise HTTPException(status_code=500, detail="Internal server error")
 ```
 
 ## Docker Configuration
@@ -354,36 +376,32 @@ gunicorn apis.metrics.main:app --bind 0.0.0.0:8080 --worker-class uvicorn.worker
 ## Implementation Best Practices
 
 ### 1. Logging
-- Always include context in logs
+- Use structured JSON logging
+- Include relevant context in logs
+- Implement log rotation
 - Use appropriate log levels
-- Include request IDs for tracing
-- Handle exceptions properly
-- Use structured logging format
+- Include request tracking
 
 ### 2. Metrics
+- Track request counts and latencies
+- Monitor error rates
 - Use meaningful metric names
 - Add appropriate labels
-- Monitor both technical and business metrics
-- Set up alerting rules
-- Watch metric cardinality
 
 ### 3. Error Handling
-- Use proper exception handling
-- Include context in error logs
-- Implement proper status codes
+- Always include error context
+- Use proper status codes
+- Implement error logging
 - Return meaningful error messages
-- Maintain security in error responses
 
 ### 4. Code Organization
 - Follow consistent project structure
-- Implement service layer pattern
-- Use proper type hints
-- Maintain clean separation of concerns
-- Document code properly
+- Keep services modular
+- Implement middleware properly
+- Use type hints
 
 ### 5. Security
-- Implement proper authentication
-- Use environment variables for configuration
-- Run services as non-root user
-- Implement rate limiting
-- Handle sensitive data properly
+- Run as non-root user
+- Use environment variables
+- Implement proper error handling
+- Validate input data
