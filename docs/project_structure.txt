@@ -3,45 +3,35 @@ project_root/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
-├── start.sh                    # Added: Script to start all APIs
+├── start.sh
 ├── .env.example
 ├── shared/
 │   ├── __init__.py
 │   ├── logging/
 │   │   ├── __init__.py
-│   │   ├── logger.py          # Main logging functionality
-│   │   └── formatters.py      # JSON formatters
+│   │   ├── logger.py
+│   │   └── formatters.py
 │   └── monitoring/
 │       ├── __init__.py
-│       ├── metrics.py         # Prometheus metrics
+│       ├── metrics.py
 │       └── prometheus_config.py
 ├── apis/
 │   ├── __init__.py
-│   ├── metrics/              # Added: Simple metrics endpoint
+│   ├── metrics/
 │   │   ├── __init__.py
-│   │   └── main.py          # Prometheus metrics exposition
+│   │   └── main.py
 │   ├── api1/
 │   │   ├── __init__.py
 │   │   ├── main.py
 │   │   ├── routes/
 │   │   │   ├── __init__.py
 │   │   │   └── v1/
-│   │   │       └── __init__.py
 │   │   ├── models/
 │   │   │   └── __init__.py
 │   │   └── services/
 │   │       └── __init__.py
 │   └── api2/
-│       ├── __init__.py
-│       ├── main.py
-│       ├── routes/
-│       │   ├── __init__.py
-│       │   └── v1/
-│       │       └── __init__.py
-│       ├── models/
-│       │   └── __init__.py
-│       └── services/
-│           └── __init__.py
+│       └── [similar structure to api1]
 └── tests/
     ├── __init__.py
     ├── conftest.py
