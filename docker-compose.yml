@@ -1,25 +1,31 @@
 # docker-compose.yml
+# docker-compose.yml
 version: '3.8'
 
 services:
-  apis:
-    build: .
+  api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"  # API1
-      - "8001:8001"  # API2
-      - "8080:8080"  # Prometheus metrics endpoint
+      - "${API1_PORT:-8000}:8000"
+      - "${API2_PORT:-8001}:8001"
+      - "${METRICS_PORT:-8080}:8080"
     volumes:
       - ./logs:/app/logs
     env_file:
       - .env
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/metrics"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-    networks:
-      - api_network
-
-networks:
-  api_network:
-    driver: bridge
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M

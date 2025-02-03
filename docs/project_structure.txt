@@ -1,39 +1,51 @@
-project_root/
-├── README.md
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-├── start.sh
-├── .env.example
-├── shared/
+n8n-services/
+│
+├── .env                          # Centralized environment variables
+├── Dockerfile                    # Single container configuration
+├── docker-compose.yml           # For local development
+├── requirements.txt             # Project dependencies
+├── README.md                    # Project documentation
+│
+├── api/                         # API services
+│   ├── db-clean/
+│   │   ├── __init__.py
+│   │   ├── main.py             # API implementation
+│   │   └── utils.py            # Service-specific utilities
+│   │
+│   ├── text-chunking/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   └── utils.py
+│   │
+│   ├── text-segmentation/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   └── utils.py
+│   │
+│   └── docx2text/
+│       ├── __init__.py
+│       ├── main.py
+│       └── utils.py
+│
+├── shared/                      # Shared components
 │   ├── __init__.py
 │   ├── logging/
 │   │   ├── __init__.py
-│   │   ├── logger.py
-│   │   └── formatters.py
+│   │   └── logger.py           # Centralized logging configuration
+│   │
 │   └── monitoring/
 │       ├── __init__.py
-│       ├── metrics.py
-│       └── prometheus_config.py
-├── apis/
-│   ├── __init__.py
-│   ├── metrics/
-│   │   ├── __init__.py
-│   │   └── main.py
-│   ├── api1/
-│   │   ├── __init__.py
-│   │   ├── main.py
-│   │   ├── routes/
-│   │   │   ├── __init__.py
-│   │   │   └── v1/
-│   │   ├── models/
-│   │   │   └── __init__.py
-│   │   └── services/
-│   │       └── __init__.py
-│   └── api2/
-│       └── [similar structure to api1]
-└── tests/
-    ├── __init__.py
-    ├── conftest.py
-    └── unit/
-        └── __init__.py
+│       └── metrics.py          # Prometheus metrics configuration
+│
+├── config/
+│   ├── logging.conf            # Logging configuration
+│   └── prometheus/
+│       └── metrics.yml         # Prometheus metrics configuration
+│
+├── logs/                       # Log files directory (mounted volume)
+│   ├── .gitkeep
+│   └── README.md              # Log directory documentation
+│
+└── scripts/
+    ├── start.sh               # Container startup script
+    └── healthcheck.sh         # Container health check script

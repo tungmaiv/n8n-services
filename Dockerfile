@@ -4,19 +4,35 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
-# Install dependencies
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better cache usage
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
 
-# Create non-root user
-RUN useradd -m appuser && \
-    chown -R appuser:appuser /app
-USER appuser
+# Create log directory
+RUN mkdir -p /app/logs && \
+    # Create non-root user
+    useradd -m -u 1000 apiuser && \
+    chown -R apiuser:apiuser /app
 
-# Command to run APIs
-CMD ["python", "-m", "apis"]
+# Switch to non-root user
+USER apiuser
+
+# Start script
+COPY start.sh .
+RUN chmod +x start.sh
+CMD ["./start.sh"]
