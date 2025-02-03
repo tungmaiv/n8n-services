@@ -87,21 +87,21 @@ def monitor_requests(metrics: APIMetrics):
 
             start_time = time.time()
             metrics.active_requests.labels(service=metrics.service_name).inc()
-
+            status_code = 500  # Initiate status code
             try:
                 response = await func(*args, **kwargs)
                 status_code = response.status_code
                 return response
             except Exception as e:
                 metrics.track_error(type(e).__name__)
-                status_code = 500
+                status_code = 500  # Set status code for errors
                 raise
             finally:
                 duration = time.time() - start_time
                 endpoint = str(request.url.path)
                 method = request.method
 
-                metrics.track_request(method, endpoint, status_code)
+                metrics.track_request(method, endpoint, status_code)  # Now status_code is always defined
                 metrics.track_latency(method, endpoint, duration)
                 metrics.active_requests.labels(service=metrics.service_name).dec()
 
