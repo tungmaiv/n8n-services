@@ -6,3 +6,4 @@ prometheus-client
 elasticsearch
 python-json-logger
 pydantic
+python-docx

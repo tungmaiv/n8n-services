@@ -11,6 +11,9 @@ from api.db_clean.main import router as db_clean_router
 from api.text_splitter.main import router as text_splitter_router
 from api.text_segmentor.main import router as text_segmentor_router
 from api.docx2text.main import router as docx2text_router
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env before other imports
 
 # Initialize logging
 logger = setup_logger("main")
