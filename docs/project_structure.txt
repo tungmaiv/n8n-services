@@ -18,6 +18,11 @@ n8n-services/
 │   │   ├── main.py
 │   │   └── utils.py
 │   │
+│   ├── text_splitter_langchain/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   └── utils.py
+│   │
 │   ├── text_segmentor/
 │   │   ├── __init__.py
 │   │   ├── main.py

@@ -21,6 +21,11 @@ n8n-services/
 │   │   ├── main.py
 │   │   └── utils.py
 │   │
+│   ├── text_splitter_langchain/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   └── utils.py
+│   │
 │   ├── text_segmentor/
 │   │   ├── __init__.py
 │   │   ├── main.py
@@ -70,6 +75,10 @@ the key folder components of this structure:
        - `utils.py`:  API utilities
        - `__init__.py`: Module initialization
      - `text_splitter`: text_splitter API
+       - `main.py`: API endpoints
+       - `utils.py`:  API utilities
+       - `__init__.py`: Module initialization
+     - `text_splitter_langchain`: text_splitter API using LangChain
        - `main.py`: API endpoints
        - `utils.py`:  API utilities
        - `__init__.py`: Module initialization
