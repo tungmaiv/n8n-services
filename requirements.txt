@@ -7,3 +7,6 @@ elasticsearch
 python-json-logger
 pydantic
 python-docx
+nltk
+langchain
+tiktoken  # Required for TokenTextSplitter
